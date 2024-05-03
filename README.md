@@ -1,7 +1,7 @@
 
 # Drarwing on the Web!
 
-**The blogpost and online version can be found [HERE](https://www.berryvansomeren.com/posts/drarwing_web)**
+**The blogpost and online version can be found [HERE](https://www.berryvansomeren.com/posts/drarwing_web)!** ✨
 
 My genetic drawing program Drarwing has been optimized and streamlined so that it runs better and is easier to use, 
 and is now served on the web via Google Cloud Functions, making it accessible directly from any web browser.
