@@ -1,0 +1,7 @@
+_input_images
+_results
+.venv
+venv
+gcf_upload.sh
+.idea
+__pycache__
