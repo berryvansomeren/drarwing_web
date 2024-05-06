@@ -10,6 +10,9 @@ class Point :
     x: int
     y: int
 
+    def copy( self ) -> "Point":
+        return Point( self.x, self.y )
+
 
 FitnessScore = float
 Image = np.ndarray
