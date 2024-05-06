@@ -23,7 +23,6 @@ from finch.brush import (
 )
 from finch.color_from_image import get_color_from_image
 from finch.fitness import get_fitness
-from finch.gif import make_gif
 from finch.image_gradient import ImageGradient
 from finch.primitive_types import Image, FitnessScore
 from finch.sample_weighted_position_from_image import sample_weighted_position_from_image
@@ -38,11 +37,13 @@ SCORE_MULTIPLIER = 10 ** DECIMALS
 
 N_ITERATIONS_PATIENCE : int = 100
 SCORE_INTERVAL: int = 0.5 * SCORE_MULTIPLIER
-TERMINATION_SCORE: int = 3500
+TERMINATION_SCORE: int = 7500
 
 ROOT_DIR                        = Path( __file__ ).parent.parent
 DEFAULT_OUTPUT_DIRECTORY_PATH   = ROOT_DIR / '_results'
 DEFAULT_INPUT_IMAGE_PATH        = ROOT_DIR / '_input_images'
+
+WINDOW_NAME = "image"
 
 
 logger = logging.getLogger(__name__)
@@ -126,120 +127,106 @@ def write_results(report_string : str, image : Image, specimen : Specimen) -> No
             pickle.dump( specimen.__dict__, pickle_file )
 
 
+def prep_image(img_path: str) -> Image:
+    image = cv2.imread( img_path )
+    return normalize_image_size( image )
+
+
+def window_exists(window_name):
+    try:
+        return cv2.getWindowProperty(window_name, 0) >= 0
+    except:
+        return False
+
+
 def run_finch_generator(
-    target_image    : Image,
+    target_images    : list[str],
     brush_set       : BrushSet,
 ) -> Image | tuple[Image, bytes]:
     preload_brush_textures_for_brush_set( brush_set = brush_set )
-    target_gradient = ImageGradient( image = target_image )
 
-    last_rounded_score = 100 * SCORE_MULTIPLIER
-    last_written_score = last_rounded_score
+    LOG_SCORES = True
+    img_path: str | None = None
+
     n_iterations_with_same_score = 0
     last_update_time = datetime.now()
 
-    logger.info('Running visual genetic algorithm')
-    start_time = datetime.now()
-
     # use a seed to make things reproducible
-    random.seed( FIXED_RANDOM_SEED )
-    np.random.seed( FIXED_RANDOM_SEED )
+    # random.seed( FIXED_RANDOM_SEED )
+    # np.random.seed( FIXED_RANDOM_SEED )
 
-    generation_index = 0
+    initial = True
 
-    specimen = get_initial_specimen( target_image = target_image )
-    diff_image = get_absolute_difference_image( specimen_image = specimen.cached_image, target_image = target_image )
-    fitness = get_fitness( specimen = specimen, target_image = target_image )
-    rounded_score = 9999999
-
-    result_frames = []
-    if MAKE_GIF:
-        result_frames.append( copy.deepcopy( specimen.cached_image ) )
+    cv2.namedWindow(WINDOW_NAME)
 
     while True:
-        generation_index += 1
-
-        # Mutate a copy of the specimen
-        new_specimen = copy.deepcopy(specimen)
-        mutate_specimen_inplace(
-            specimen = new_specimen,
-            fitness = fitness,
-            target_image = target_image,
-            target_gradient = target_gradient,
-            diff_image = diff_image
-        )
-        new_fitness = get_fitness( specimen = new_specimen, target_image = target_image )
-        new_rounded_score = round( new_fitness * 100 * SCORE_MULTIPLIER )
-
-        # Only keep the new version if it is an improvement
-        if new_rounded_score >= rounded_score:
-            n_iterations_with_same_score += 1
-        else:
-            n_iterations_with_same_score = 0
-            fitness = new_fitness
-            rounded_score = new_rounded_score
-            specimen = new_specimen
-            diff_image = get_absolute_difference_image( specimen.cached_image, target_image )
-
-        current_update_time = datetime.now()
-        update_time_microseconds = ( current_update_time - last_update_time ).microseconds
-        last_update_time = current_update_time
-
-        report_string = f'gen_{generation_index:06d}__dt_{update_time_microseconds}_ms__score_{rounded_score}'
-
-        if LOG_SCORES:
-            logger.info( report_string )
-
-        # We only write images if they show enough improvement compared to the last written one
-        if last_written_score - rounded_score >= SCORE_INTERVAL :
-            write_results( report_string, specimen.cached_image, specimen )
-            last_written_score = rounded_score
-            if MAKE_GIF:
-                result_frames.append( copy.deepcopy( specimen.cached_image ) )
-
-        # If ran out of patience, write the final result, and break
-        ran_out_of_patience = n_iterations_with_same_score == N_ITERATIONS_PATIENCE
-        reached_termination_score = rounded_score <= TERMINATION_SCORE
-        if ( ran_out_of_patience or reached_termination_score ):
-            write_results( report_string, specimen.cached_image, specimen)
-            if ran_out_of_patience:
-                logger.info( 'Ran out of patience.' )
-            else:
-                logger.info( 'Reached termination score.' )
+        if not window_exists(WINDOW_NAME):
             break
 
-    # make sure to include the last frame in the GIF,
-    # even though it did not meet the score_interval
-    if MAKE_GIF :
-        result_frames.append( copy.deepcopy( specimen.cached_image ) )
+        old_img_path = img_path
+        while img_path == old_img_path:
+            img_path = random.choice(target_images)
 
-    end_time = datetime.now()
-    convergence_time = end_time - start_time
-    logger.info( f'Converged in {convergence_time.seconds} seconds.' )
+        logger.info(f"Drawing image {img_path}")
+        target_image = prep_image(img_path)
+        target_gradient = ImageGradient( image = target_image )
+        if initial:
+            specimen = get_initial_specimen( target_image = target_image )
+            initial = False
+        diff_image = get_absolute_difference_image( specimen_image = specimen.cached_image, target_image = target_image )
+        fitness = get_fitness( specimen = specimen, target_image = target_image )
+        rounded_score = 9999999
+        generation_index = 0
 
-    logger.info( 'Creating 4K version' )
-    result_4k = redraw_painting_at_4k( specimen = specimen )
 
-    if WRITE_OUTPUT:
-        output_path_4k = f'{DEFAULT_OUTPUT_DIRECTORY_PATH}/___final_result_4k.png'
-        cv2.imwrite( output_path_4k, result_4k )
-        logger.info( f'Wrote 4k result to {output_path_4k}' )
+        while True:
+            generation_index += 1
 
-    if MAKE_GIF:
-        output_path_gif = f'{DEFAULT_OUTPUT_DIRECTORY_PATH}/___final_result_gif.gif'
-        gif_buffer = make_gif(result_frames)
-        logger.info( f'Wrote GIF result to {output_path_gif}' )
+            # Mutate a copy of the specimen
+            new_specimen = specimen.copy()
+            mutate_specimen_inplace(
+                specimen = new_specimen,
+                fitness = fitness,
+                target_image = target_image,
+                target_gradient = target_gradient,
+                diff_image = diff_image
+            )
+            new_fitness = get_fitness( specimen = new_specimen, target_image = target_image )
+            new_rounded_score = round( new_fitness * 100 * SCORE_MULTIPLIER )
 
-        if WRITE_OUTPUT:
-            with open( output_path_gif, 'wb' ) as f :
-                f.write( gif_buffer )
+            # Only keep the new version if it is an improvement
+            if new_rounded_score >= rounded_score:
+                n_iterations_with_same_score += 1
+            else:
+                n_iterations_with_same_score = 0
+                fitness = new_fitness
+                rounded_score = new_rounded_score
+                specimen = new_specimen
+                diff_image = get_absolute_difference_image( specimen.cached_image, target_image )
 
-        logger.info( f'DONE!' )
-        return result_4k, gif_buffer
+            current_update_time = datetime.now()
+            update_time_microseconds = ( current_update_time - last_update_time ).microseconds
+            last_update_time = current_update_time
 
-    logger.info( f'DONE!' )
-    return result_4k
+            report_string = f'gen_{generation_index:06d}__dt_{update_time_microseconds}_ms__score_{rounded_score}'
 
+            if LOG_SCORES:
+                logger.info( report_string )
+
+            if not window_exists(WINDOW_NAME):
+                break
+            cv2.imshow(WINDOW_NAME, specimen.cached_image)
+            cv2.waitKey(1)
+
+            # If ran out of patience, write the final result, and break
+            ran_out_of_patience = n_iterations_with_same_score == N_ITERATIONS_PATIENCE
+            reached_termination_score = rounded_score <= TERMINATION_SCORE
+            if ( ran_out_of_patience or reached_termination_score ):
+                if ran_out_of_patience:
+                    logger.info( 'Ran out of patience.' )
+                else:
+                    logger.info( 'Reached termination score.' )
+                break
 
 
 def run_finch( image : np.ndarray, brush_set_name : str ) -> np.ndarray:
