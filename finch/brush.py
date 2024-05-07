@@ -12,6 +12,7 @@ from finch.primitive_types import Color, Point, FitnessScore
 
 ROOT_DIR                        = Path( __file__ ).parent.parent
 DEFAULT_BRUSH_DIRECTORY         = ROOT_DIR / 'finch/brushes'
+BRUSH_SCALE_FACTOR = 1.5
 
 
 class BrushSet(Enum):
@@ -29,6 +30,15 @@ class Brush:
     angle           : float
     size            : int
 
+    def copy( self ) -> "Brush":
+        return Brush(
+            color=self.color,
+            texture_index=self.texture_index,
+            position=self.position.copy(),
+            angle=self.angle,
+            size=self.size,
+        )
+
 
 def str_to_brush_set( s : str ) -> BrushSet:
     return {
@@ -44,7 +54,7 @@ def get_brush_size_for_fitness( fitness : FitnessScore, image_height : int, imag
     # The brush size is then simply a percentage of the size of the image, based on this difference,
     # and scaled with a configurable parameter.
     image_min_extend = min( image_height, image_width )
-    scaled_brush_size = int( image_min_extend * fitness )
+    scaled_brush_size = int( image_min_extend * fitness * BRUSH_SCALE_FACTOR )
     brush_size = max( 1, scaled_brush_size )
     return brush_size
 

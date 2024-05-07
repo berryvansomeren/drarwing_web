@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 
 from finch.primitive_types import Image
 

@@ -7,6 +7,7 @@ from finch.brush import Brush
 @dataclass
 class Specimen :
     cached_image: Image
+    diff_image: Image | None = None
 
     # The brushes are basically the genes of the specimen.
     # We do not actually use them in the algorithm,
@@ -15,3 +16,10 @@ class Specimen :
     # and to later redraw the image with different settings, if pickled.
     # For that, see common.redraw.redraw_painting
     brushes: list[ Brush ] = field( default_factory = list )
+
+    def copy( self ) -> "Specimen":
+        return Specimen(
+            cached_image=self.cached_image.copy(),
+            diff_image=self.diff_image.copy() if self.diff_image is not None else None,
+            brushes=[ brush.copy() for brush in self.brushes ]
+        )

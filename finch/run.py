@@ -1,11 +1,13 @@
-import copy
 import logging
 
 from datetime import datetime
+import time
 from enum import Enum, auto
 import math
 from pathlib import Path
 import pickle
+from os import listdir
+from os.path import isfile, join
 
 import random
 import cv2
@@ -24,9 +26,8 @@ from finch.brush import (
 from finch.color_from_image import get_color_from_image
 from finch.fitness import get_fitness
 from finch.image_gradient import ImageGradient
-from finch.primitive_types import Image, FitnessScore
+from finch.primitive_types import Image, FitnessScore, Point
 from finch.sample_weighted_position_from_image import sample_weighted_position_from_image
-from finch.redraw import redraw_painting_at_4k
 from finch.scale import normalize_image_size
 from finch.specimen import Specimen
 
@@ -37,13 +38,16 @@ SCORE_MULTIPLIER = 10 ** DECIMALS
 
 N_ITERATIONS_PATIENCE : int = 100
 SCORE_INTERVAL: int = 0.5 * SCORE_MULTIPLIER
-TERMINATION_SCORE: int = 7500
+TERMINATION_SCORE: int = 3500
 
 ROOT_DIR                        = Path( __file__ ).parent.parent
 DEFAULT_OUTPUT_DIRECTORY_PATH   = ROOT_DIR / '_results'
 DEFAULT_INPUT_IMAGE_PATH        = ROOT_DIR / '_input_images'
 
-WINDOW_NAME = "image"
+WINDOW_NAME = "drarwing_continuous"
+WINDOW_DIFF = "drarwing_continuous_diff"
+MAXIMUM_TIME_PER_IMAGE_SECONDS = 5 * 60
+MINIMUM_FRAME_TIME_S = 0.01
 
 
 logger = logging.getLogger(__name__)
@@ -52,8 +56,10 @@ logger = logging.getLogger(__name__)
 WRITE_OUTPUT = False
 WRITE_PICKLE = False
 MAKE_GIF = False
-LOG_SCORES = True
 
+DEBUG = False
+FULLSCREEN = True
+SHOW_DIFF = False
 
 class Config(Enum):
     DEBUG = auto()
@@ -64,20 +70,17 @@ def set_global_config( config : Config ) -> None:
     global WRITE_OUTPUT
     global WRITE_PICKLE
     global MAKE_GIF
-    global LOG_SCORES
     if config == Config.DEBUG:
         WRITE_OUTPUT = True
         WRITE_PICKLE = False
         MAKE_GIF = True
-        LOG_SCORES = True
     else:
         WRITE_OUTPUT = False
         WRITE_PICKLE = False
         MAKE_GIF = True
-        LOG_SCORES = False
 
 
-def get_blank_image_like( example_image ) -> Image:
+def get_blank_image_like( example_image: Image ) -> Image:
     blank_image = np.zeros_like( example_image )
     blank_image.fill( 255 )
     return blank_image
@@ -94,9 +97,15 @@ def mutate_specimen_inplace(
         fitness : FitnessScore,
         target_image : Image,
         target_gradient : ImageGradient,
-        diff_image : Image
+        store_brushes: bool = True,
 ) -> None:
-    position = sample_weighted_position_from_image( diff_image = diff_image )
+    DIFF_IMAGE_FACTOR = 4
+    diff_image_small = cv2.resize(
+        specimen.diff_image,
+        (int(specimen.diff_image.shape[1] / DIFF_IMAGE_FACTOR), int(specimen.diff_image.shape[0] / DIFF_IMAGE_FACTOR))
+    )
+    position = sample_weighted_position_from_image( diff_image = diff_image_small )
+    position.mult(DIFF_IMAGE_FACTOR)
     color = get_color_from_image( image = target_image, position = position )
     texture_index = random_brush_texture_index()
     angle = math.degrees( target_gradient.get_direction( position ) )
@@ -113,7 +122,8 @@ def mutate_specimen_inplace(
         size = brush_size,
     )
     draw_brush_on_image( brush = new_brush, image = specimen.cached_image )
-    specimen.brushes.append( new_brush )
+    if store_brushes:
+        specimen.brushes.append( new_brush )
 
 
 def write_results(report_string : str, image : Image, specimen : Specimen) -> None:
@@ -129,7 +139,11 @@ def write_results(report_string : str, image : Image, specimen : Specimen) -> No
 
 def prep_image(img_path: str) -> Image:
     image = cv2.imread( img_path )
-    return normalize_image_size( image )
+    # image = cv2.blur(image,(5,5))
+    if FULLSCREEN:
+        return normalize_image_size( image, max_dimension=3440 )
+    else:
+        return normalize_image_size( image, max_dimension=720 )
 
 
 def window_exists(window_name):
@@ -139,13 +153,19 @@ def window_exists(window_name):
         return False
 
 
-def run_finch_generator(
-    target_images    : list[str],
-    brush_set       : BrushSet,
-) -> Image | tuple[Image, bytes]:
-    preload_brush_textures_for_brush_set( brush_set = brush_set )
+def _get_random_image_path(image_folder: str, previous: str | None) -> str:
+    img_paths = [join(image_folder, f) for f in listdir(image_folder) if isfile(join(image_folder, f))]
+    img_path = previous
+    while img_path == previous:
+        img_path = random.choice(img_paths)
+    return img_path
 
-    LOG_SCORES = True
+
+def run_finch_generator(
+    image_folder     : str,
+    brush_sets       : list[BrushSet],
+) -> Image | tuple[Image, bytes]:
+
     img_path: str | None = None
 
     n_iterations_with_same_score = 0
@@ -156,16 +176,22 @@ def run_finch_generator(
     # np.random.seed( FIXED_RANDOM_SEED )
 
     initial = True
+    stop = False
 
-    cv2.namedWindow(WINDOW_NAME)
+    if FULLSCREEN:
+        cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
+        cv2.setWindowProperty(WINDOW_NAME, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    else:
+        cv2.namedWindow(WINDOW_NAME)
 
-    while True:
-        if not window_exists(WINDOW_NAME):
-            break
+    if SHOW_DIFF:
+        cv2.namedWindow(WINDOW_DIFF)
 
-        old_img_path = img_path
-        while img_path == old_img_path:
-            img_path = random.choice(target_images)
+    while not stop:
+
+        img_path = _get_random_image_path(image_folder, img_path)
+        brush_set = random.choice(brush_sets)
+        preload_brush_textures_for_brush_set( brush_set = brush_set )
 
         logger.info(f"Drawing image {img_path}")
         target_image = prep_image(img_path)
@@ -173,13 +199,14 @@ def run_finch_generator(
         if initial:
             specimen = get_initial_specimen( target_image = target_image )
             initial = False
-        diff_image = get_absolute_difference_image( specimen_image = specimen.cached_image, target_image = target_image )
         fitness = get_fitness( specimen = specimen, target_image = target_image )
         rounded_score = 9999999
         generation_index = 0
 
+        image_start_time = time.time()
 
-        while True:
+        while time.time() - image_start_time < MAXIMUM_TIME_PER_IMAGE_SECONDS:
+            frame_start_time = time.time()
             generation_index += 1
 
             # Mutate a copy of the specimen
@@ -189,7 +216,7 @@ def run_finch_generator(
                 fitness = fitness,
                 target_image = target_image,
                 target_gradient = target_gradient,
-                diff_image = diff_image
+                store_brushes=False,
             )
             new_fitness = get_fitness( specimen = new_specimen, target_image = target_image )
             new_rounded_score = round( new_fitness * 100 * SCORE_MULTIPLIER )
@@ -202,7 +229,6 @@ def run_finch_generator(
                 fitness = new_fitness
                 rounded_score = new_rounded_score
                 specimen = new_specimen
-                diff_image = get_absolute_difference_image( specimen.cached_image, target_image )
 
             current_update_time = datetime.now()
             update_time_microseconds = ( current_update_time - last_update_time ).microseconds
@@ -210,13 +236,34 @@ def run_finch_generator(
 
             report_string = f'gen_{generation_index:06d}__dt_{update_time_microseconds}_ms__score_{rounded_score}'
 
-            if LOG_SCORES:
-                logger.info( report_string )
+            logger.debug( report_string )
 
             if not window_exists(WINDOW_NAME):
+                stop = True
                 break
-            cv2.imshow(WINDOW_NAME, specimen.cached_image)
-            cv2.waitKey(1)
+            if DEBUG:
+                img = specimen.cached_image.copy()
+                img = cv2.putText(
+                    img,
+                    f"{img_path}-{brush_set.name} {update_time_microseconds} ms, {rounded_score} score",
+                    (50, 50),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (0, 0, 255),
+                    1,
+                    cv2.LINE_AA
+                )
+                cv2.imshow(WINDOW_NAME, img)
+            else:
+                cv2.imshow(WINDOW_NAME, specimen.cached_image)
+
+            if SHOW_DIFF:
+                cv2.imshow(WINDOW_DIFF, specimen.diff_image)
+
+            key = cv2.waitKey(1)
+            if key > -1:
+                stop = True
+                break
 
             # If ran out of patience, write the final result, and break
             ran_out_of_patience = n_iterations_with_same_score == N_ITERATIONS_PATIENCE
@@ -227,6 +274,10 @@ def run_finch_generator(
                 else:
                     logger.info( 'Reached termination score.' )
                 break
+
+            frame_time = time.time() - frame_start_time
+            if frame_time < MINIMUM_FRAME_TIME_S:
+                time.sleep(MINIMUM_FRAME_TIME_S - frame_time)
 
 
 def run_finch( image : np.ndarray, brush_set_name : str ) -> np.ndarray:
