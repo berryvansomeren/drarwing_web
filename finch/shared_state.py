@@ -15,5 +15,7 @@ class State:
     image_available: bool = False
     update_time_microseconds: int = 0
 
+    lock_image: bool = False
+
     flag_stop: bool = False
     flag_next_image: bool = False

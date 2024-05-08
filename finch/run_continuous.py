@@ -24,7 +24,7 @@ from finch.shared_state import State
 logger = logging.getLogger(__name__)
 
 MAXIMUM_TIME_PER_IMAGE_SECONDS = 5 * 60
-MINIMUM_STEP_TIME_SECONDS = 0.00001
+MINIMUM_STEP_TIME_SECONDS = 0.0001
 
 DEBUG = True
 FULLSCREEN = False
@@ -86,7 +86,7 @@ def run_continuous_finch(image_folder: str, brush_sets: list[BrushSet]) -> Image
         while (
             not shared_state.flag_stop
             and not shared_state.flag_next_image
-            and time.time() - image_start_time < MAXIMUM_TIME_PER_IMAGE_SECONDS
+            and (shared_state.lock_image or time.time() - image_start_time < MAXIMUM_TIME_PER_IMAGE_SECONDS)
         ):
             frame_start_time = time.time()
             generation_index += 1
@@ -120,7 +120,7 @@ def run_continuous_finch(image_folder: str, brush_sets: list[BrushSet]) -> Image
 
             logger.debug( report_string )
 
-            if is_drawing_finished(n_iterations_with_same_score, shared_state.score):
+            if not shared_state.lock_image and is_drawing_finished(n_iterations_with_same_score, shared_state.score):
                 break
 
             frame_time = time.time() - frame_start_time
