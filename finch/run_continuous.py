@@ -21,32 +21,25 @@ from finch.render import render_thread
 from finch.scale import normalize_image_size
 from finch.shared_state import State
 
-
-FIXED_RANDOM_SEED = 1337
+logger = logging.getLogger(__name__)
 
 MAXIMUM_TIME_PER_IMAGE_SECONDS = 5 * 60
 MINIMUM_STEP_TIME_SECONDS = 0.00001
-
-
-logger = logging.getLogger(__name__)
-
-
-WRITE_OUTPUT = False
-WRITE_PICKLE = False
-MAKE_GIF = False
 
 DEBUG = True
 FULLSCREEN = False
 SHOW_DIFF = False
 
 
-def _prep_image(img_path: str) -> Image:
+def _prep_image(img_path: str) -> tuple[Image, ImageGradient]:
     image = cv2.imread( img_path )
     # image = cv2.blur(image,(5,5))
+
     if FULLSCREEN:
-        return normalize_image_size( image, max_dimension=3440 )
+        image = normalize_image_size(image, max_dimension=3440)
     else:
-        return normalize_image_size( image, max_dimension=720 )
+        image = normalize_image_size(image, max_dimension=720)
+    return image, ImageGradient(image=image)
 
 
 def _get_random_image_path(image_folder: str, previous: str | None) -> str:
@@ -57,17 +50,9 @@ def _get_random_image_path(image_folder: str, previous: str | None) -> str:
     return img_path
 
 
-def run_continuous_finch(
-    image_folder     : str,
-    brush_sets       : list[BrushSet],
-) -> Image | tuple[Image, bytes]:
-
+def run_continuous_finch(image_folder: str, brush_sets: list[BrushSet]) -> Image | tuple[Image, bytes]:
     n_iterations_with_same_score = 0
     last_update_time = datetime.now()
-
-    # use a seed to make things reproducible
-    # random.seed( FIXED_RANDOM_SEED )
-    # np.random.seed( FIXED_RANDOM_SEED )
 
     shared_state = State()
 
@@ -83,19 +68,15 @@ def run_continuous_finch(
     )
     thread.start()
 
-    initial = True
-
     while not shared_state.flag_stop:
         shared_state.img_path = _get_random_image_path(image_folder, shared_state.img_path)
         shared_state.brush = random.choice(brush_sets)
         preload_brush_textures_for_brush_set( brush_set = shared_state.brush )
 
         logger.info(f"Drawing image {shared_state.img_path}")
-        target_image = _prep_image(shared_state.img_path)
-        target_gradient = ImageGradient( image = target_image )
-        if initial:
+        target_image, target_gradient = _prep_image(shared_state.img_path)
+        if shared_state.specimen is None:
             shared_state.specimen = get_initial_specimen( target_image = target_image )
-            initial = False
         fitness = get_fitness( specimen = shared_state.specimen, target_image = target_image )
         shared_state.score = 9999999
         generation_index = 0
