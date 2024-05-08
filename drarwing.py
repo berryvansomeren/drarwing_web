@@ -15,7 +15,7 @@ c_handler.setFormatter(c_format)
 logger.addHandler(c_handler)
 
 
-image_folder = "images"
+image_folder = "_input_images"
 
 result = run_continuous_finch(
     image_folder = image_folder,
