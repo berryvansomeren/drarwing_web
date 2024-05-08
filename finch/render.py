@@ -25,6 +25,8 @@ def render_thread(shared_state: State, fullscreen: bool = True, show_diff: bool 
     if show_diff:
         cv2.namedWindow(DIFF_WINDOW_NAME)
 
+    show_diff_in_main_window = False
+
     last_frame = time.time()
     last_frame_duration = -1.0
     while (
@@ -33,13 +35,19 @@ def render_thread(shared_state: State, fullscreen: bool = True, show_diff: bool 
         and (not show_diff or _window_exists(DIFF_WINDOW_NAME))
     ):
         if shared_state.image_available:
+            main_image = (
+                cv2.cvtColor(shared_state.specimen.diff_image, cv2.COLOR_GRAY2BGR)
+                if show_diff_in_main_window
+                else shared_state.specimen.cached_image
+            )
+
             if debug or shared_state.lock_image:
-                img = shared_state.specimen.cached_image.copy()
+                main_image = main_image.copy()
                 if debug:
-                    img = cv2.putText(
-                        img,
+                    main_image = cv2.putText(
+                        main_image,
                         f"{shared_state.img_path}-{shared_state.brush.name} "
-                        f"{shared_state.update_time_microseconds} ms, {shared_state.score} score "
+                        f"{shared_state.update_time_microseconds} us, {shared_state.score} score "
                         f'{round(1 / last_frame_duration) if last_frame_duration > 0 else "inf"} fps',
                         (10, 20),
                         cv2.FONT_HERSHEY_SIMPLEX,
@@ -49,8 +57,8 @@ def render_thread(shared_state: State, fullscreen: bool = True, show_diff: bool 
                         cv2.LINE_AA
                     )
                 if shared_state.lock_image:
-                    img = cv2.putText(
-                        img,
+                    main_image = cv2.putText(
+                        main_image,
                         "LOCKED",
                         (10, 50),
                         cv2.FONT_HERSHEY_SIMPLEX,
@@ -59,9 +67,8 @@ def render_thread(shared_state: State, fullscreen: bool = True, show_diff: bool 
                         1,
                         cv2.LINE_AA
                     )
-                cv2.imshow(WINDOW_NAME, img)
-            else:
-                cv2.imshow(WINDOW_NAME, shared_state.specimen.cached_image)
+
+            cv2.imshow(WINDOW_NAME, main_image)
 
             if show_diff:
                 cv2.imshow(DIFF_WINDOW_NAME, shared_state.specimen.diff_image)
@@ -69,6 +76,7 @@ def render_thread(shared_state: State, fullscreen: bool = True, show_diff: bool 
             key = cv2.waitKey(1)
             if key > -1:
                 match key:
+                    case 100: show_diff_in_main_window = not show_diff_in_main_window
                     case 108: shared_state.lock_image = not shared_state.lock_image  # "l"
                     case 110: shared_state.flag_next_image = True  # "n"
                     case _: break
