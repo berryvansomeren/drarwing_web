@@ -1,4 +1,4 @@
-from finch.run import run_finch_generator, BrushSet
+from finch.run_continuous import run_continuous_finch, BrushSet
 
 import logging
 
@@ -17,7 +17,7 @@ logger.addHandler(c_handler)
 
 image_folder = "images"
 
-result = run_finch_generator(
+result = run_continuous_finch(
     image_folder = image_folder,
     brush_sets = [brush_set for brush_set in BrushSet if brush_set != BrushSet.Sketch]
 )
