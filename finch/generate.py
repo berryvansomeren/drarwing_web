@@ -22,7 +22,7 @@ DECIMALS = 3
 SCORE_MULTIPLIER = 10 ** DECIMALS
 
 DIFF_IMAGE_FACTOR = 4
-N_ITERATIONS_PATIENCE : int = 500
+N_ITERATIONS_PATIENCE : int = 100
 TERMINATION_SCORE: int = 3500
 
 
@@ -53,8 +53,8 @@ def iterate_image(
         target_gradient = target_gradient,
         store_brushes=store_brushes,
     )
-    new_fitness = get_fitness( specimen = new_specimen, target_image = target_image )
-    new_rounded_score = round( new_fitness * 100 * SCORE_MULTIPLIER )
+    new_fitness = get_fitness(specimen=new_specimen, target_image=target_image, use_relative_difference=True)
+    new_rounded_score = round(new_fitness * 100 * SCORE_MULTIPLIER)
     return new_specimen, new_fitness, new_rounded_score
 
 

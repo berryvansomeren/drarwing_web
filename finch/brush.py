@@ -12,8 +12,7 @@ from finch.primitive_types import Color, Point, FitnessScore
 
 ROOT_DIR                        = Path( __file__ ).parent.parent
 DEFAULT_BRUSH_DIRECTORY         = ROOT_DIR / 'finch/brushes'
-BRUSH_SCALE_FACTOR = 1.5
-
+BRUSH_SCALE_FACTOR = 1
 
 class BrushSet(Enum):
     Canvas = auto()

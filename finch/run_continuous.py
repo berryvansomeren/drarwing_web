@@ -27,13 +27,13 @@ MAXIMUM_TIME_PER_IMAGE_SECONDS = 5 * 60
 MINIMUM_STEP_TIME_SECONDS = 0.0001
 
 DEBUG = True
-FULLSCREEN = False
+FULLSCREEN = True
 SHOW_DIFF = False
 
 
 def _prep_image(img_path: str) -> tuple[Image, ImageGradient]:
     image = cv2.imread( img_path )
-    # image = cv2.blur(image,(5,5))
+    image = cv2.blur(image,(5,5))
 
     if FULLSCREEN:
         image = normalize_image_size(image, max_dimension=3440)
@@ -77,7 +77,7 @@ def run_continuous_finch(image_folder: str, brush_sets: list[BrushSet]) -> Image
         target_image, target_gradient = _prep_image(shared_state.img_path)
         if shared_state.specimen is None:
             shared_state.specimen = get_initial_specimen( target_image = target_image )
-        fitness = get_fitness( specimen = shared_state.specimen, target_image = target_image )
+        fitness = get_fitness(specimen=shared_state.specimen, target_image=target_image, use_relative_difference=True)
         shared_state.score = 9999999
         generation_index = 0
 
