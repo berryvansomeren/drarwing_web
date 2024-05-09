@@ -13,6 +13,7 @@ from finch.brush import (
     BrushSet,
     preload_brush_textures_for_brush_set,
 )
+from finch.difference_image import DifferenceMethod
 from finch.fitness import get_fitness
 from finch.generate import get_initial_specimen, iterate_image, is_drawing_finished
 from finch.image_gradient import ImageGradient
@@ -75,7 +76,9 @@ def run_continuous_finch(image_folder: str, brush_sets: list[BrushSet]) -> Image
         target_image, target_gradient = _prep_image(shared_state.img_path)
         if shared_state.specimen is None:
             shared_state.specimen = get_initial_specimen( target_image = target_image )
-        fitness = get_fitness(specimen=shared_state.specimen, target_image=target_image, use_relative_difference=True)
+        fitness = get_fitness(
+            specimen=shared_state.specimen, target_image=target_image, diff_method=DifferenceMethod.DELTAE
+        )
         shared_state.score = 9999999
         generation_index = 0
 

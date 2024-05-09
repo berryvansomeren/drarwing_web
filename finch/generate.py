@@ -10,6 +10,7 @@ from finch.brush import (
     get_brush_size_for_fitness,
 )
 from finch.color_from_image import get_color_from_image
+from finch.difference_image import DifferenceMethod
 from finch.fitness import get_fitness
 from finch.image_gradient import ImageGradient
 from finch.primitive_types import Image, FitnessScore
@@ -53,7 +54,7 @@ def iterate_image(
         target_gradient = target_gradient,
         store_brushes=store_brushes,
     )
-    new_fitness = get_fitness(specimen=new_specimen, target_image=target_image, use_relative_difference=True)
+    new_fitness = get_fitness(specimen=new_specimen, target_image=target_image, diff_method=DifferenceMethod.DELTAE)
     new_rounded_score = round(new_fitness * 100 * SCORE_MULTIPLIER)
     return new_specimen, new_fitness, new_rounded_score
 
