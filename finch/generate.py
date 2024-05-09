@@ -9,10 +9,10 @@ from finch.brush import (
     draw_brush_on_image,
     get_brush_size_for_fitness,
 )
-from finch.color_from_image import get_color_from_image
 from finch.difference_image import DifferenceMethod
 from finch.fitness import get_fitness
 from finch.image_gradient import ImageGradient
+from finch.image_utils import get_color_from_image, scale_image
 from finch.primitive_types import Image, FitnessScore
 from finch.sample_weighted_position_from_image import sample_weighted_position_from_image
 from finch.specimen import Specimen
@@ -45,6 +45,7 @@ def iterate_image(
     target_image: Image,
     target_gradient: ImageGradient,
     store_brushes: bool = False,
+    diff_method: DifferenceMethod = DifferenceMethod.ABSOLUTE,
 ) -> tuple[Specimen, FitnessScore, int]:
     new_specimen = specimen.copy()
     _mutate_specimen_inplace(
@@ -54,7 +55,7 @@ def iterate_image(
         target_gradient = target_gradient,
         store_brushes=store_brushes,
     )
-    new_fitness = get_fitness(specimen=new_specimen, target_image=target_image, diff_method=DifferenceMethod.DELTAE)
+    new_fitness = get_fitness(specimen=new_specimen, target_image=target_image, diff_method=diff_method)
     new_rounded_score = round(new_fitness * 100 * SCORE_MULTIPLIER)
     return new_specimen, new_fitness, new_rounded_score
 
@@ -66,10 +67,7 @@ def _mutate_specimen_inplace(
         target_gradient : ImageGradient,
         store_brushes: bool = True,
 ) -> None:
-    diff_image_small = cv2.resize(
-        specimen.diff_image,
-        (int(specimen.diff_image.shape[1] / DIFF_IMAGE_FACTOR), int(specimen.diff_image.shape[0] / DIFF_IMAGE_FACTOR))
-    )
+    diff_image_small = scale_image(specimen.diff_image, 1 / DIFF_IMAGE_FACTOR)
     position = sample_weighted_position_from_image( diff_image = diff_image_small )
     position.mult(DIFF_IMAGE_FACTOR)
     color = get_color_from_image( image = target_image, position = position )

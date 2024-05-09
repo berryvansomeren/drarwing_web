@@ -26,26 +26,12 @@ logger = logging.getLogger(__name__)
 
 MAXIMUM_TIME_PER_IMAGE_SECONDS = 5 * 60
 MINIMUM_STEP_TIME_SECONDS = 0.0001
+WAIT_BETWEEN_IMAGES_SECONDS = 1 * 60
+DIFF_METHOD = DifferenceMethod.DELTAE
 
-DEBUG = True
+DEBUG = False
 FULLSCREEN = True
 SHOW_DIFF = False
-
-
-def _prep_image(img_path: str) -> tuple[Image, ImageGradient]:
-    image = cv2.imread( img_path )
-    dimension = get_window_size()
-    image = scale_to_dimension(image, dimension)
-    image = cv2.blur(image,(5,5))
-    return image, ImageGradient(image=image)
-
-
-def _get_random_image_path(image_folder: str, previous: str | None) -> str:
-    img_paths = [join(image_folder, f) for f in listdir(image_folder) if isfile(join(image_folder, f))]
-    img_path = previous
-    while img_path == previous:
-        img_path = random.choice(img_paths)
-    return img_path
 
 
 def run_continuous_finch(image_folder: str, brush_sets: list[BrushSet]) -> Image | tuple[Image, bytes]:
@@ -68,20 +54,9 @@ def run_continuous_finch(image_folder: str, brush_sets: list[BrushSet]) -> Image
     time.sleep(0.1)
 
     while not shared_state.flag_stop:
-        shared_state.img_path = _get_random_image_path(image_folder, shared_state.img_path)
-        shared_state.brush = random.choice(brush_sets)
-        preload_brush_textures_for_brush_set( brush_set = shared_state.brush )
+        target_image, target_gradient, fitness = _initialize_for_next_image(image_folder, brush_sets, shared_state)
 
-        logger.info(f"Drawing image {shared_state.img_path}")
-        target_image, target_gradient = _prep_image(shared_state.img_path)
-        if shared_state.specimen is None:
-            shared_state.specimen = get_initial_specimen( target_image = target_image )
-        fitness = get_fitness(
-            specimen=shared_state.specimen, target_image=target_image, diff_method=DifferenceMethod.DELTAE
-        )
-        shared_state.score = 9999999
         generation_index = 0
-
         image_start_time = time.time()
 
         while (
@@ -92,13 +67,13 @@ def run_continuous_finch(image_folder: str, brush_sets: list[BrushSet]) -> Image
             frame_start_time = time.time()
             generation_index += 1
 
-            # Mutate a copy of the specimen
             new_specimen, new_fitness, new_score = iterate_image(
                 shared_state.specimen,
                 fitness,
                 target_image,
                 target_gradient,
-                store_brushes=False
+                store_brushes=False,
+                diff_method=DIFF_METHOD,
             )
 
             # Only keep the new version if it is an improvement
@@ -128,6 +103,59 @@ def run_continuous_finch(image_folder: str, brush_sets: list[BrushSet]) -> Image
             if frame_time < MINIMUM_STEP_TIME_SECONDS:
                 time.sleep(MINIMUM_STEP_TIME_SECONDS - frame_time)
 
+        _wait_for_next_image(shared_state)
         shared_state.flag_next_image = False
 
     thread.join()
+
+
+def _initialize_for_next_image(image_folder, brush_sets, shared_state: State) -> tuple[Image, Image, int]:
+    shared_state.img_path = _get_random_image_path(image_folder, shared_state.img_path)
+    shared_state.brush = random.choice(brush_sets)
+    preload_brush_textures_for_brush_set( brush_set = shared_state.brush )
+
+    logger.info(f"Drawing image {shared_state.img_path}")
+    target_image, target_gradient = _prep_image(shared_state.img_path)
+    if shared_state.specimen is None:
+        shared_state.specimen = get_initial_specimen( target_image = target_image )
+    shared_state.score = 9999999
+
+    return (
+        target_image,
+        target_gradient,
+        get_fitness(specimen=shared_state.specimen, target_image=target_image, diff_method=DIFF_METHOD)
+    )
+
+
+def _get_random_image_path(image_folder: str, previous: str | None) -> str:
+    img_paths = [join(image_folder, f) for f in listdir(image_folder) if isfile(join(image_folder, f))]
+    img_path = previous
+    while img_path == previous:
+        img_path = random.choice(img_paths)
+    return img_path
+
+
+def _prep_image(img_path: str) -> tuple[Image, ImageGradient]:
+    image = cv2.imread( img_path )
+    dimension = get_window_size()
+    image = scale_to_dimension(image, dimension)
+    image = cv2.blur(image,(5,5))
+    return image, ImageGradient(image=image)
+
+
+def _wait_for_next_image(shared_state: State) -> None:
+    """
+    Semi-active wait loop to ensure that we can still interact (lock/unlock, switch to next image, quit the program)
+    during the wait.
+    """
+    logger.info(f"Waiting for {WAIT_BETWEEN_IMAGES_SECONDS} before drawing next image")
+    wait_start = time.time()
+    while (
+        shared_state.lock_image
+        or (
+            time.time() - wait_start < WAIT_BETWEEN_IMAGES_SECONDS
+            and not shared_state.flag_stop
+            and not shared_state.flag_next_image
+        )
+    ):
+        time.sleep(1)

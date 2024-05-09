@@ -5,7 +5,9 @@ import numpy as np
 import colour
 
 from finch.primitive_types import Image
+from finch.image_utils import scale_image
 
+DIFF_IMAGE_FACTOR = 2
 
 class DifferenceMethod(enum.Enum):
     ABSOLUTE = enum.auto()
@@ -16,11 +18,19 @@ class DifferenceMethod(enum.Enum):
 def get_difference_image(
     specimen_image : Image, target_image : Image, method: DifferenceMethod = DifferenceMethod.ABSOLUTE
 ) -> Image:
+    specimen_image_small = scale_image(specimen_image, 1 / DIFF_IMAGE_FACTOR)
+    target_image_small = scale_image(target_image, 1 / DIFF_IMAGE_FACTOR)
+
     match method:
-        case DifferenceMethod.ABSOLUTE: return _get_absolute_difference_image(specimen_image, target_image)
-        case DifferenceMethod.RELATIVE: return _get_relative_difference_image(specimen_image, target_image)
-        case DifferenceMethod.DELTAE: return _get_deltaE_difference_image(specimen_image, target_image)
+        case DifferenceMethod.ABSOLUTE:
+            difference_image = _get_absolute_difference_image(specimen_image_small, target_image_small)
+        case DifferenceMethod.RELATIVE:
+            difference_image = _get_relative_difference_image(specimen_image_small, target_image_small)
+        case DifferenceMethod.DELTAE:
+            difference_image = _get_deltaE_difference_image(specimen_image_small, target_image_small)
         case _: raise NotImplementedError
+
+    return scale_image(difference_image, DIFF_IMAGE_FACTOR)
 
 
 def _get_absolute_difference_image( specimen_image : Image, target_image : Image ) -> Image:
