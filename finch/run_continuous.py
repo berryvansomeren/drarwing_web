@@ -17,8 +17,8 @@ from finch.fitness import get_fitness
 from finch.generate import get_initial_specimen, iterate_image, is_drawing_finished
 from finch.image_gradient import ImageGradient
 from finch.primitive_types import Image
-from finch.render import render_thread
-from finch.scale import normalize_image_size
+from finch.render import get_window_size, render_thread
+from finch.scale import scale_to_dimension
 from finch.shared_state import State
 
 logger = logging.getLogger(__name__)
@@ -33,12 +33,9 @@ SHOW_DIFF = False
 
 def _prep_image(img_path: str) -> tuple[Image, ImageGradient]:
     image = cv2.imread( img_path )
+    dimension = get_window_size()
+    image = scale_to_dimension(image, dimension)
     image = cv2.blur(image,(5,5))
-
-    if FULLSCREEN:
-        image = normalize_image_size(image, max_dimension=3440)
-    else:
-        image = normalize_image_size(image, max_dimension=720)
     return image, ImageGradient(image=image)
 
 
@@ -67,6 +64,7 @@ def run_continuous_finch(image_folder: str, brush_sets: list[BrushSet]) -> Image
         }
     )
     thread.start()
+    time.sleep(0.1)
 
     while not shared_state.flag_stop:
         shared_state.img_path = _get_random_image_path(image_folder, shared_state.img_path)

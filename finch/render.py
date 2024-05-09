@@ -8,6 +8,11 @@ DIFF_WINDOW_NAME = "drarwing_continuous_diff"
 MIN_FRAME_DURATION = 1/60
 
 
+def get_window_size() -> tuple[int, int]:
+    _, _, x, y = cv2.getWindowImageRect(WINDOW_NAME)
+    return (x, y)
+
+
 def _window_exists(window_name: str):
     try:
         return cv2.getWindowProperty(window_name, 0) >= 0
