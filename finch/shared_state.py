@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from finch.brush import Brush
+from finch.primitive_types import Image
 from finch.specimen import Specimen
 
 
@@ -9,6 +10,7 @@ class State:
     img_path: str | None = None
     brush: Brush | None = None
 
+    target_image: Image | None = None
     specimen: Specimen | None = None
     score: int = 99999999
 

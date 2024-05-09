@@ -29,9 +29,8 @@ MINIMUM_STEP_TIME_SECONDS = 0.0001
 WAIT_BETWEEN_IMAGES_SECONDS = 1 * 60
 DIFF_METHOD = DifferenceMethod.DELTAE
 
-DEBUG = False
+DEBUG = True
 FULLSCREEN = True
-SHOW_DIFF = False
 
 
 def run_continuous_finch(image_folder: str, brush_sets: list[BrushSet]) -> Image | tuple[Image, bytes]:
@@ -46,8 +45,6 @@ def run_continuous_finch(image_folder: str, brush_sets: list[BrushSet]) -> Image
         kwargs={
             "shared_state": shared_state,
             "fullscreen": FULLSCREEN,
-            "show_diff": SHOW_DIFF,
-            "debug": DEBUG
         }
     )
     thread.start()
@@ -116,6 +113,7 @@ def _initialize_for_next_image(image_folder, brush_sets, shared_state: State) ->
 
     logger.info(f"Drawing image {shared_state.img_path}")
     target_image, target_gradient = _prep_image(shared_state.img_path)
+    shared_state.target_image = target_image
     if shared_state.specimen is None:
         shared_state.specimen = get_initial_specimen( target_image = target_image )
     shared_state.score = 9999999
