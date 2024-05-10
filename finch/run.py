@@ -1,4 +1,3 @@
-import copy
 import logging
 
 from datetime import datetime
@@ -154,13 +153,13 @@ def run_finch_generator(
 
     result_frames = []
     if MAKE_GIF:
-        result_frames.append( copy.deepcopy( specimen.cached_image ) )
+        result_frames.append( specimen.cached_image.copy() )
 
     while True:
         generation_index += 1
 
         # Mutate a copy of the specimen
-        new_specimen = copy.deepcopy(specimen)
+        new_specimen = specimen.copy()
         mutate_specimen_inplace(
             specimen = new_specimen,
             fitness = fitness,
@@ -195,7 +194,7 @@ def run_finch_generator(
             write_results( report_string, specimen.cached_image, specimen )
             last_written_score = rounded_score
             if MAKE_GIF:
-                result_frames.append( copy.deepcopy( specimen.cached_image ) )
+                result_frames.append( specimen.cached_image.copy() )
 
         # If ran out of patience, write the final result, and break
         ran_out_of_patience = n_iterations_with_same_score == N_ITERATIONS_PATIENCE
@@ -211,7 +210,7 @@ def run_finch_generator(
     # make sure to include the last frame in the GIF,
     # even though it did not meet the score_interval
     if MAKE_GIF :
-        result_frames.append( copy.deepcopy( specimen.cached_image ) )
+        result_frames.append( specimen.cached_image.copy() )
 
     end_time = datetime.now()
     convergence_time = end_time - start_time

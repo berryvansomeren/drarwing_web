@@ -29,6 +29,15 @@ class Brush:
     angle           : float
     size            : int
 
+    def copy( self ) -> "Brush":
+        return Brush(
+            color=self.color,
+            texture_index=self.texture_index,
+            position=self.position.copy(),
+            angle=self.angle,
+            size=self.size,
+        )
+
 
 def str_to_brush_set( s : str ) -> BrushSet:
     return {
