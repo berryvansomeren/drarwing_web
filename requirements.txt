@@ -3,3 +3,4 @@ requests == 2.31.0
 flask == 2.3.3
 flask-cors == 4.0.0
 imageio == 2.34.0
+colour-science == 0.4.4

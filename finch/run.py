@@ -1,5 +1,6 @@
 import copy
 import logging
+import os
 
 from datetime import datetime
 from enum import Enum, auto
@@ -11,7 +12,6 @@ import random
 import cv2
 import numpy as np
 
-from finch.absolute_difference_image import get_absolute_difference_image
 from finch.brush import (
     Brush,
     BrushSet,
@@ -21,7 +21,8 @@ from finch.brush import (
     get_brush_size_for_fitness,
     str_to_brush_set
 )
-from finch.color_from_image import get_color_from_image
+from finch.generate import get_initial_specimen, iterate_image, is_drawing_finished
+from finch.image_utils import get_color_from_image
 from finch.fitness import get_fitness
 from finch.gif import make_gif
 from finch.image_gradient import ImageGradient
@@ -74,18 +75,6 @@ def set_global_config( config : Config ) -> None:
         WRITE_PICKLE = False
         MAKE_GIF = True
         LOG_SCORES = False
-
-
-def get_blank_image_like( example_image ) -> Image:
-    blank_image = np.zeros_like( example_image )
-    blank_image.fill( 255 )
-    return blank_image
-
-
-def get_initial_specimen( target_image : Image ) -> Specimen:
-    blank_image = get_blank_image_like( target_image )
-    specimen = Specimen(cached_image = blank_image )
-    return specimen
 
 
 def mutate_specimen_inplace(
@@ -148,7 +137,6 @@ def run_finch_generator(
     generation_index = 0
 
     specimen = get_initial_specimen( target_image = target_image )
-    diff_image = get_absolute_difference_image( specimen_image = specimen.cached_image, target_image = target_image )
     fitness = get_fitness( specimen = specimen, target_image = target_image )
     rounded_score = 9999999
 
@@ -159,17 +147,12 @@ def run_finch_generator(
     while True:
         generation_index += 1
 
-        # Mutate a copy of the specimen
-        new_specimen = copy.deepcopy(specimen)
-        mutate_specimen_inplace(
-            specimen = new_specimen,
-            fitness = fitness,
-            target_image = target_image,
-            target_gradient = target_gradient,
-            diff_image = diff_image
+        new_specimen, new_fitness, new_rounded_score = iterate_image(
+            specimen,
+            fitness,
+            target_image,
+            target_gradient,
         )
-        new_fitness = get_fitness( specimen = new_specimen, target_image = target_image )
-        new_rounded_score = round( new_fitness * 100 * SCORE_MULTIPLIER )
 
         # Only keep the new version if it is an improvement
         if new_rounded_score >= rounded_score:
@@ -179,7 +162,6 @@ def run_finch_generator(
             fitness = new_fitness
             rounded_score = new_rounded_score
             specimen = new_specimen
-            diff_image = get_absolute_difference_image( specimen.cached_image, target_image )
 
         current_update_time = datetime.now()
         update_time_microseconds = ( current_update_time - last_update_time ).microseconds
@@ -198,14 +180,8 @@ def run_finch_generator(
                 result_frames.append( copy.deepcopy( specimen.cached_image ) )
 
         # If ran out of patience, write the final result, and break
-        ran_out_of_patience = n_iterations_with_same_score == N_ITERATIONS_PATIENCE
-        reached_termination_score = rounded_score <= TERMINATION_SCORE
-        if ( ran_out_of_patience or reached_termination_score ):
+        if ( is_drawing_finished(n_iterations_with_same_score, rounded_score) ):
             write_results( report_string, specimen.cached_image, specimen)
-            if ran_out_of_patience:
-                logger.info( 'Ran out of patience.' )
-            else:
-                logger.info( 'Reached termination score.' )
             break
 
     # make sure to include the last frame in the GIF,
@@ -221,12 +197,12 @@ def run_finch_generator(
     result_4k = redraw_painting_at_4k( specimen = specimen )
 
     if WRITE_OUTPUT:
-        output_path_4k = f'{DEFAULT_OUTPUT_DIRECTORY_PATH}/___final_result_4k.png'
+        output_path_4k = DEFAULT_OUTPUT_DIRECTORY_PATH / '___final_result_4k.png'
         cv2.imwrite( output_path_4k, result_4k )
         logger.info( f'Wrote 4k result to {output_path_4k}' )
 
     if MAKE_GIF:
-        output_path_gif = f'{DEFAULT_OUTPUT_DIRECTORY_PATH}/___final_result_gif.gif'
+        output_path_gif = DEFAULT_OUTPUT_DIRECTORY_PATH / '___final_result_gif.gif'
         gif_buffer = make_gif(result_frames)
         logger.info( f'Wrote GIF result to {output_path_gif}' )
 
