@@ -21,7 +21,7 @@ def get_fitness(
     Note that throughout this project it is assumed that lower fitness scores are better.
     Scores are commonly a percentage, measuring equality between result and target
     """
-    difference_image = get_difference_image(specimen.cached_image, target_image)
+    difference_image = get_difference_image(specimen.cached_image, target_image, diff_method)
     specimen.diff_image = difference_image
     fitness = _get_fitness_from_absolute_difference_image(difference_image)
     return fitness

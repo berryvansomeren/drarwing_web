@@ -1,11 +1,20 @@
 import enum
+import logging
 
 import cv2
 import numpy as np
-import colour
 
 from finch.primitive_types import Image
 from finch.image_utils import scale_image
+
+logger = logging.getLogger(__name__)
+
+try:
+    import colour
+except ModuleNotFoundError as e:
+    logger.error(
+        "colour-science module not installed, delta-E not supported as difference method. "
+        "Run `pip install colour-science` or choose a different DifferenceMethod")
 
 DIFF_IMAGE_FACTOR = 2
 
