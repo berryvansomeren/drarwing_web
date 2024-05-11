@@ -197,12 +197,12 @@ def run_finch_generator(
     result_4k = redraw_painting_at_4k( specimen = specimen )
 
     if WRITE_OUTPUT:
-        output_path_4k = f'{DEFAULT_OUTPUT_DIRECTORY_PATH}{os.sep}___final_result_4k.png'
+        output_path_4k = DEFAULT_OUTPUT_DIRECTORY_PATH / '___final_result_4k.png'
         cv2.imwrite( output_path_4k, result_4k )
         logger.info( f'Wrote 4k result to {output_path_4k}' )
 
     if MAKE_GIF:
-        output_path_gif = f'{DEFAULT_OUTPUT_DIRECTORY_PATH}{os.sep}___final_result_gif.gif'
+        output_path_gif = DEFAULT_OUTPUT_DIRECTORY_PATH / '___final_result_gif.gif'
         gif_buffer = make_gif(result_frames)
         logger.info( f'Wrote GIF result to {output_path_gif}' )
 
