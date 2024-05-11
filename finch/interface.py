@@ -6,7 +6,7 @@ import cv2
 from finch.shared_state import State
 
 WINDOW_NAME = "drarwing_continuous"
-MIN_FRAME_DURATION = 1/60
+MIN_FRAME_DURATION = 1/60  # This parameter allows limiting of the framerate, as this would go quite wild otherwise.
 
 
 class ShowType(enum.Enum):
@@ -64,30 +64,31 @@ def render_thread(shared_state: State, fullscreen: bool = True):
                         1,
                         cv2.LINE_AA
                     )
-                if shared_state.lock_image:
-                    main_image = cv2.putText(
-                        main_image,
-                        "LOCKED",
-                        (10, 50),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.5,
-                        (0, 0, 255),
-                        1,
-                        cv2.LINE_AA
-                    )
+                    if shared_state.lock_image:
+                        main_image = cv2.putText(
+                            main_image,
+                            "LOCKED",
+                            (10, 50),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.5,
+                            (0, 0, 255),
+                            1,
+                            cv2.LINE_AA
+                        )
 
             cv2.imshow(WINDOW_NAME, main_image)
 
             key = cv2.waitKey(1)
             if key > -1:
                 match key:
-                    case 100: show = ShowType.DIFF  # "d"
-                    case 105: debug = not debug  # "i"
+                    case 100: show = ShowType.DIFF                                   # "d"
+                    case 105: debug = not debug                                      # "i"
                     case 108: shared_state.lock_image = not shared_state.lock_image  # "l"
-                    case 109: show = ShowType.NORMAL  # "m"
-                    case 110: shared_state.flag_next_image = True  # "n"
-                    case 111: show = ShowType.ORIGINAL  # "o"
-                    case _: break  # Any other key means exit the program
+                    case 109: show = ShowType.NORMAL                                 # "m"
+                    case 110: shared_state.flag_next_image = True                    # "n"
+                    case 111: show = ShowType.ORIGINAL                               # "o"
+                    case 27: break                                                   # ESC
+                    case _: pass  # Any other key is ignored
 
         now = time.time()
         last_frame_duration = now - last_frame

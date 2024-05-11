@@ -19,5 +19,5 @@ image_folder = "_input_images"
 
 result = run_continuous_finch(
     image_folder = image_folder,
-    brush_sets = [brush_set for brush_set in BrushSet if brush_set != BrushSet.Sketch]
+    brush_sets = [brush_set for brush_set in BrushSet]
 )

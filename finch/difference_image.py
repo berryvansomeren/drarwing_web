@@ -16,7 +16,7 @@ except ModuleNotFoundError as e:
         "colour-science module not installed, delta-E not supported as difference method. "
         "Run `pip install colour-science` or choose a different DifferenceMethod")
 
-DIFF_IMAGE_FACTOR = 2
+DIFF_IMAGE_FACTOR = 4
 
 class DifferenceMethod(enum.Enum):
     ABSOLUTE = enum.auto()

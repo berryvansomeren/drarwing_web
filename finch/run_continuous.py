@@ -18,7 +18,7 @@ from finch.fitness import get_fitness
 from finch.generate import get_initial_specimen, iterate_image, is_drawing_finished
 from finch.image_gradient import ImageGradient
 from finch.primitive_types import Image
-from finch.render import get_window_size, render_thread
+from finch.interface import get_window_size, render_thread
 from finch.scale import scale_to_dimension
 from finch.shared_state import State
 
@@ -28,8 +28,6 @@ MAXIMUM_TIME_PER_IMAGE_SECONDS = 5 * 60
 MINIMUM_STEP_TIME_SECONDS = 0.0001
 WAIT_BETWEEN_IMAGES_SECONDS = 1 * 60
 DIFF_METHOD = DifferenceMethod.DELTAE
-
-DEBUG = True
 FULLSCREEN = True
 
 
