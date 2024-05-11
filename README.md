@@ -77,7 +77,7 @@ On the other hand, without such a check to prevent getting stuck in a loop, the 
 
 # Continous drarwing
 
-A new extension to this code base is the option to run Drarwing continuously. For this, the program `continuous.py` is
+A new extension to this code base is the option to run Drarwing continuously. For this, the program `flock.py` is
 added in the root of the repo. In that file, you can configure a folder where images are read from. You can also
 configure the set of Brushes that is rotated through.
 
