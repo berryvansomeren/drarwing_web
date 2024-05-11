@@ -44,7 +44,7 @@ def iterate_image(
     fitness: FitnessScore,
     target_image: Image,
     target_gradient: ImageGradient,
-    store_brushes: bool = False,
+    store_brushes: bool = True,
     diff_method: DifferenceMethod = DifferenceMethod.ABSOLUTE,
 ) -> tuple[Specimen, FitnessScore, int]:
     new_specimen = specimen.copy()
