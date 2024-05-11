@@ -108,7 +108,7 @@ If you need to tweak some things, there are some constants configured in `finch/
     - `DifferenceMethod.DELTAE`:
         This method uses the [https://en.wikipedia.org/wiki/Color_difference](CIELAB Delta-E) approach to determine
         differences, in our case CIE76 as the nuances of later versions are not too relevant for the blunt approach we
-        take. This converts the images to the CIELAB colour space and calculates the euclidean distance between those.
+        take. This converts the images to the CIELAB colour space and calculates the Euclidean distance between those.
         This method is designed specifically to be as close as possible to how humans experience colour differences.
         This method is however the slowest of the three by some margin.
 - `FULLSCREEN`:

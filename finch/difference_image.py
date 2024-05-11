@@ -60,5 +60,7 @@ def _get_relative_difference_image( specimen_image : Image, target_image : Image
 def _get_deltaE_difference_image( specimen_image : Image, target_image : Image ) -> tuple[Image, Image]:
     specimen_image_LAB = cv2.cvtColor(specimen_image, cv2.COLOR_BGR2LAB)
     target_image_LAB = cv2.cvtColor(target_image, cv2.COLOR_BGR2LAB)
+    # The difference value in CIE1976 is simply Euclidian distance - a potential improvement may be a direct
+    # implementation
     diff_image = colour.difference.delta_E_CIE1976(specimen_image_LAB, target_image_LAB)
     return diff_image.astype("uint8")
