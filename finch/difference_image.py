@@ -14,7 +14,8 @@ try:
 except ModuleNotFoundError as e:
     logger.error(
         "colour-science module not installed, delta-E not supported as difference method. "
-        "Run `pip install colour-science` or choose a different DifferenceMethod")
+        "Run `pip install colour-science` or choose a different DifferenceMethod"
+    )
 
 DIFF_IMAGE_FACTOR = 4
 

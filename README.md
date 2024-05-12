@@ -78,8 +78,8 @@ On the other hand, without such a check to prevent getting stuck in a loop, the 
 # Continous drarwing
 
 A new extension to this code base is the option to run Drarwing continuously. For this, the program `flock.py` is
-added in the root of the repo. In that file, you can configure a folder where images are read from. You can also
-configure the set of Brushes that is rotated through.
+added in the root of the repo. In that file, you can configure the folder where images are read from. You can also
+configure the set of Brushes that is used to randomly select from.
 
 ## Tweaking for your application
 
@@ -109,15 +109,16 @@ If you need to tweak some things, there are some constants configured in `finch/
         This method uses the [https://en.wikipedia.org/wiki/Color_difference](CIELAB Delta-E) approach to determine
         differences, in our case CIE76 as the nuances of later versions are not too relevant for the blunt approach we
         take. This converts the images to the CIELAB colour space and calculates the Euclidean distance between those.
-        This method is designed specifically to be as close as possible to how humans experience colour differences.
-        This method is however the slowest of the three by some margin.
+        This method is designed specifically to be as close as possible to how humans experience colour differences. It
+        is however the slowest of the three by quite a bit.
 - `FULLSCREEN`:
         Whether to run the application fullscreen or in a small image for faster testing purposes
 
-Further tweaking can be done with the `DIFF_IMAGE_FACTOR` parameters in `finch/difference_image.py` and
-`finch/generate.py` - these scale down the difference image before performing expensive operations on it in order to
-speed things up. The idea is that the brush strokes are so blunt, we don't need a super detailed difference image to get
-virtually the same results.
+Further tweaking to the speed-wise performance can be done with the `DIFF_IMAGE_FACTOR` parameters in
+`finch/difference_image.py` and `finch/generate.py` - these scale down the difference image before performing expensive
+operations on it in order to speed things up. The idea is that the brush strokes are so blunt, we don't need a super
+detailed difference image to get virtually the same results. It may however cause some detrimental results to the
+quality of the final image.
 
 ## Convenience and interactive controls
 

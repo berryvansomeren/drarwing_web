@@ -91,7 +91,6 @@ def _mutate_specimen_inplace(
 
 
 def is_drawing_finished(n_iterations_with_same_score: int, score: int) -> bool:
-    # If ran out of patience, write the final result, and break
     ran_out_of_patience = n_iterations_with_same_score == N_ITERATIONS_PATIENCE
     reached_termination_score = score <= TERMINATION_SCORE
     if ( ran_out_of_patience or reached_termination_score ):
