@@ -28,7 +28,7 @@ MAXIMUM_TIME_PER_IMAGE_SECONDS = 5 * 60
 MINIMUM_STEP_TIME_SECONDS = 0.0001
 WAIT_BETWEEN_IMAGES_SECONDS = 1 * 60
 DIFF_METHOD = DifferenceMethod.DELTAE
-FULLSCREEN = False
+FULLSCREEN = True
 
 
 def run_continuous_finch(image_folder: str, brush_sets: list[BrushSet]) -> Image | tuple[Image, bytes]:

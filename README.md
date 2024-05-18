@@ -42,9 +42,9 @@ If you need to tweak some things, there are some constants configured in `finch/
         but it is when drawing over an existing image.
     - `DifferenceMethod.RELATIVE`:
         This method is similar to the absolute method, but the result is scaled to the highest-brightness value of the
-        pixels. Effectively, it becomes the "percentage of difference" between the target images and the current state.
-        This still does not take colour differences into account, but it performs much better in dark parts of the
-        images.
+        two respective pixels. Effectively, it becomes the "percentage of difference" between the target images and the
+        current state. This still does not take colour differences into account, but it performs much better in dark
+        parts of the images.
     - `DifferenceMethod.DELTAE`:
         This method uses the [https://en.wikipedia.org/wiki/Color_difference](CIELAB Delta-E) approach to determine
         differences, in our case CIE76 as the nuances of later versions are not too relevant for the blunt approach we
