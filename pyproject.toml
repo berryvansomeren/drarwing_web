@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "drarwing-continuous"
+version = "0.1.0"
+description = "Continuous 'forever painting' adaptation of Berry van Someren's drarwing project"
+authors = ["Jayke Meijer"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "~3.11"
+matplotlib = "^3.9.0"
+opencv-python = "^4.9.0.80"
+colour-science = "^0.4.4"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.4.4"
+mypy = "^1.10.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
